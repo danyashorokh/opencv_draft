@@ -123,7 +123,7 @@ def getShadowSize(thresh, x, y):
         for j in range(thresh.shape[1]):
             if (thresh[i, j] == 255) and (math.sqrt((i - y) * (i - y) + (j - x) * (j - x)) < min_dist):
                 min_dist = math.sqrt((i - y) * (i - y) + (j - x) * (j - x))
-                min_dist_coords = (i, j)  # y,x
+                min_dist_coords = (i, j)  # y, x
 
     # определяем сегмент, который содержит пиксель с минимальным расстоянием до здания
     import queue as queue
@@ -132,6 +132,10 @@ def getShadowSize(thresh, x, y):
     q_coords.put(min_dist_coords)
 
     mask = thresh.copy()
+
+    cv2.imshow('123', mask)
+    cv2.waitKey(0)
+    
     output_coords = list()
     output_coords.append(min_dist_coords)
 
@@ -155,15 +159,21 @@ def getShadowSize(thresh, x, y):
 
     # отрисовываем ближайшую тень
     mask = np.zeros_like(mask)
+    cv2.imshow('123', mask)
+    cv2.waitKey(0)
     for i in range(len(output_coords)):
         mask[output_coords[i][0]][output_coords[i][1]] = 255
 
     # определяем размер(длину) тени при помощи морфологической операции erode
     kernel = np.ones((3, 3), np.uint8)
+
     i = 0
     while np.count_nonzero(mask) != 0:
         mask = cv2.erode(mask, kernel, iterations=1)
         i += 1
+
+        # cv2.imshow('123', mask)
+        # cv2.waitKey(0)
 
     return i + 1
 
@@ -207,7 +217,11 @@ df.index = range(len(df))
 
 # угол солнца над горизонтом
 sun_elevation = 47.7
+y_pix = 3.949
+x_pix = 4.168
+sun_az = 159.8
 
+m_in_pix = y_pix / math.cos(math.degrees(sun_az))
 
 swir_bn = cv2.imread(dir_swir, 0)
 swir_bn = cv2.GaussianBlur(swir_bn, (7, 7), 0)
@@ -271,7 +285,7 @@ for idx in range(0, df.shape[0]):
         # (size, size) - координаты здания в roi
         # умножаем длину тени в пикселях на размер пикселя в метрах
         # (в этом случае пространственное разрешение 3 м)
-        shadow_length = getShadowSize(shadow, size, size) * 4
+        shadow_length = getShadowSize(shadow, size, size) * m_in_pix # 3
 
         est_height = shadow_length * math.tan(sun_elevation * 3.14 / 180)
         est_height = int(est_height)
