@@ -8,7 +8,7 @@ frame = cv2.imread(path + 'h1.jpg')
 field = cv2.imread(path + 'field2.png')
 
 pts2 = [(220,5),
-        (220, 216),
+        (220, 110), # 216
         (33, 97),
         (33, 123)
         ]
@@ -30,14 +30,16 @@ pts2 = [(220,5),
 # exit()
 ####################################
 
-k = 3
+k = 4
 frame = cv2.resize(frame, (int(frame.shape[1] / k), int(frame.shape[0] / k)))
 
 
 im_disp = frame.copy()
 im_draw = frame.copy()
+field1 = field.copy()
 
 pts = []
+ppts = (0,0,1)
 
 
 def do_nothing(event, x, y, flags, param):
@@ -66,6 +68,31 @@ def set_field(event, x, y, flags, param):
         # cv2.imshow("image", im_draw)
 
         print(pts)
+
+def set_player(event, x, y, flags, param):
+    # grab references to the global variables
+    global ppts
+
+    if event == cv2.EVENT_LBUTTONUP:
+
+        print('player x = %s y = %s' % (x,y))
+
+        ppts = (x, y, 1)
+
+        print(ppts)
+
+        hppt = list(np.dot(h, ppts))
+        print(hppt)
+
+        hppt[0] /= hppt[2]
+        hppt[1] /= hppt[2]
+
+        print(hppt[0], hppt[1])
+
+        cv2.circle(field1, (int(hppt[0]), int(hppt[1])), 7, (0,0,0), 2)
+
+    # elif event == cv2.EVENT_MOUSEMOVE:
+    #     print(x,y)
 
 
 cv2.namedWindow("image")
@@ -108,13 +135,38 @@ if len(pts) == 4:
 # Do homography
 h, status = cv2.findHomography(np.array(pts), np.array(pts2))
 
+# print(h)
+
+np.savetxt('h_matrix.txt', h)
+h = np.loadtxt('h_matrix.txt')
+
 # Warp source image to destination based on homography
 frame1 = cv2.warpPerspective(frame, h, (field.shape[1], field.shape[0]))
+
 
 # Display images
 # cv2.imshow("Source Image", im_src)
 # cv2.imshow("Destination Image", field)
 cv2.imshow("Warped Source Image", frame1)
+
+# print(frame1.shape)
+# print(field.shape)
+
+# Draw players
+while(1):
+
+    cv2.setMouseCallback("image", set_player)
+    cv2.imshow('image', im_draw)
+    cv2.imshow('field', field1)
+
+    k = cv2.waitKey(20) & 0xFF
+    if k == 27:
+        break
+
+    # if the 'r' key is pressed, reset the field points
+    if k in [ord("r"), ord("к")]:
+        im_draw = field1.copy()
+
 
 cv2.waitKey(0)
 
