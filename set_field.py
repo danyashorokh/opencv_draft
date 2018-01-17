@@ -67,7 +67,7 @@ def set_field(event, x, y, flags, param):
         cv2.circle(im_draw, (x, y), 5, color, 2)
         # cv2.imshow("image", im_draw)
 
-        print(pts)
+        # print(pts)
 
 def set_player(event, x, y, flags, param):
     # grab references to the global variables
@@ -75,21 +75,22 @@ def set_player(event, x, y, flags, param):
 
     if event == cv2.EVENT_LBUTTONUP:
 
-        print('player x = %s y = %s' % (x,y))
-
         ppts = (x, y, 1)
 
-        print(ppts)
-
         hppt = list(np.dot(h, ppts))
-        print(hppt)
 
         hppt[0] /= hppt[2]
         hppt[1] /= hppt[2]
 
-        print(hppt[0], hppt[1])
+        hx = int(hppt[0])
+        hy = int(hppt[1])
 
-        cv2.circle(field1, (int(hppt[0]), int(hppt[1])), 7, (0,0,0), 2)
+        print('player x = %s y = %s hx = %s hy = %s' % (x, y, hx, hy))
+
+        # print(hppt[0], hppt[1])
+
+        cv2.circle(field1, (hx, hy), 7, (0,0,0), 2)
+        cv2.circle(im_draw, (x, y), 4, (0,0,0), 2)
 
     # elif event == cv2.EVENT_MOUSEMOVE:
     #     print(x,y)
@@ -99,7 +100,7 @@ cv2.namedWindow("image")
 cv2.imshow("image", im_draw)
 # cv2.setMouseCallback("image", set_field)
 
-
+pts = [(272, 129), (286, 168), (70, 158), (62, 167)]  # Костыль
 
 while(1):
 
@@ -118,11 +119,8 @@ while(1):
         break
 
 cv2.setMouseCallback("image", do_nothing)
+
 print(pts)
-
-
-
-
 
 
 if len(pts) == 4:
