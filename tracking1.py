@@ -1,9 +1,9 @@
 
-import cv2
-import sys
 
+import sys
 import cv2
 import numpy as np
+from collections import deque
 
 path = 'input/'
 
@@ -291,30 +291,10 @@ bbox = cv2.selectROI(frame, False)
 # Initialize tracker with first frame and bounding box
 ok = tracker.init(frame, bbox)
 
-# cv2.setMouseCallback('image', callback2)
+buffer = 20
+draw_pts = deque(maxlen=buffer)
 
-
-# bbox_point = (int(bbox[0]) + int(int(bbox[2])/2), int(bbox[1] + bbox[3]))
-#
-# print(bbox_point)
-#
-# print(bbox[0], bbox[1], bbox[2], bbox[3])
-
-
-# # hx, hy = h_points(h, bbox_point[0], bbox_point[1])
-# hx, hy = h_points(h, 332, 352)
-#
-# print(hx, hy)
-#
-# cv2.circle(field1, (hx, hy), 9, (0,0,255), 2)
-#
-# # 332 352
-#
-# cv2.imshow('field', field1)
-#
-# cv2.waitKey(0)
-#
-# exit()
+counter = 0
 
 while True:
     # Read a new frame
@@ -332,17 +312,42 @@ while True:
 
     bbox_point = (int(bbox[0]) + int(int(bbox[2]) / 2), int(bbox[1] + bbox[3]))
 
-
-    # hx, hy = h_points(h, bbox_point[0], bbox_point[1])
     hx, hy = h_points(h, bbox_point[0], bbox_point[1])
 
+    draw_pts.appendleft((hx, hy))
+
     # print(hx, hy)
-    field1 = field.copy()
-    cv2.circle(field1, (hx, hy), 9, (0, 0, 255), 2)
-
-    # 332 352
+    # field1 = field.copy()
+    # cv2.circle(field1, (hx, hy), 9, (0, 0, 255), 2)
 
 
+    #########
+
+    # loop over the set of tracked points
+    for i in np.arange(1, len(draw_pts)):
+        # if either of the tracked points are None, ignore
+        # them
+        if draw_pts[i - 1] is None or draw_pts[i] is None:
+            continue
+
+        # check to see if enough points have been accumulated in
+        # the buffer
+        if counter >= 10 and i == 1 and draw_pts[-10] is not None:
+            # compute the difference between the x and y
+            # coordinates and re-initialize the direction
+            # text variables
+            # dX = draw_pts[-10][0] - draw_pts[i][0]
+            # dY = draw_pts[-10][1] - draw_pts[i][1]
+            # (dirX, dirY) = ("", "")
+
+            # otherwise, compute the thickness of the line and
+            # draw the connecting lines
+            thickness = int(np.sqrt(buffer / float(i + 1)) * 2.5)
+            cv2.line(field1, draw_pts[i - 1], draw_pts[i], (0, 0, 255), thickness)
+
+
+
+    #########
 
     # Calculate Frames per second (FPS)
     fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer);
@@ -367,18 +372,20 @@ while True:
     # cv2.imshow("Tracking", frame)
     # cv2.imshow('field', field1)
 
-    field2 = field1.copy()
+    # field2 = field1.copy()
     # field_k = frame.shape[0]/field2.shape[0]
-    field_k = field2.shape[0]/frame.shape[0]
+    field_k = field1.shape[0]/frame.shape[0]
     # field2 = cv2.resize(field2, (int(field_k * field2.shape[1]), frame.shape[0]))
-    frame = cv2.resize(frame, (int(field_k * frame.shape[1]), field2.shape[0]))
+    frame = cv2.resize(frame, (int(field_k * frame.shape[1]), field1.shape[0]))
 
-    total = np.hstack([field2, frame])
+    total = np.hstack([field1, frame])
     cv2.imshow("Tracking", total)
 
     # Exit if ESC pressed
     k = cv2.waitKey(1) & 0xff
-    if k == 27 : break
+    if k == 27: break
+
+    counter += 1
 
 
 cv2.waitKey(0)
