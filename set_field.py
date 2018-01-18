@@ -7,9 +7,9 @@ path = 'input/'
 frame = cv2.imread(path + 'h1.jpg')
 field = cv2.imread(path + 'field2.png')
 
-pts2 = [(220,5),
-        (220, 110), # 216
-        (33, 97),
+pts2 = [(220,3),
+        (220, 143), # 216-c_down 110-c_center
+        (33, 9), # 97-g_top
         (33, 123)
         ]
 
@@ -19,7 +19,7 @@ pts2 = [(220,5),
 #         print(x,y)
 #
 # cv2.namedWindow('field')
-# # cv2.setMouseCallback('field', callback2)
+# cv2.setMouseCallback('field', callback2)
 #
 # for p in pts2:
 #     cv2.circle(field, p, 5, (0, 0, 255), 2)
@@ -30,17 +30,17 @@ pts2 = [(220,5),
 # exit()
 ####################################
 
-k = 4
+k = 2
 frame = cv2.resize(frame, (int(frame.shape[1] / k), int(frame.shape[0] / k)))
 
 
 im_disp = frame.copy()
 im_draw = frame.copy()
+im_draw1 = im_draw.copy()
 field1 = field.copy()
 
-pts = []
-ppts = (0,0,1)
 
+pts = []
 
 def do_nothing(event, x, y, flags, param):
     pass
@@ -70,20 +70,13 @@ def set_field(event, x, y, flags, param):
         # print(pts)
 
 def set_player(event, x, y, flags, param):
-    # grab references to the global variables
-    global ppts
 
-    if event == cv2.EVENT_LBUTTONUP:
+    if event == cv2.EVENT_LBUTTONDOWN:
+        pass
 
-        ppts = (x, y, 1)
+    elif event == cv2.EVENT_LBUTTONUP:
 
-        hppt = list(np.dot(h, ppts))
-
-        hppt[0] /= hppt[2]
-        hppt[1] /= hppt[2]
-
-        hx = int(hppt[0])
-        hy = int(hppt[1])
+        hx, hy = h_points(h, x, y)
 
         print('player x = %s y = %s hx = %s hy = %s' % (x, y, hx, hy))
 
@@ -95,12 +88,25 @@ def set_player(event, x, y, flags, param):
     # elif event == cv2.EVENT_MOUSEMOVE:
     #     print(x,y)
 
+def h_points(h, x, y):
+
+    hppt = list(np.dot(h, (x, y, 1)))
+
+    hppt[0] /= hppt[2]
+    hppt[1] /= hppt[2]
+
+    hx = int(hppt[0])
+    hy = int(hppt[1])
+
+    return hx, hy
+
 
 cv2.namedWindow("image")
 cv2.imshow("image", im_draw)
 # cv2.setMouseCallback("image", set_field)
 
-pts = [(272, 129), (286, 168), (70, 158), (62, 167)]  # Костыль
+# pts = [(272, 129), (286, 168), (70, 158), (62, 167)]  # Костыль
+pts = [(542, 260), (588, 374), (198, 264), (122, 336)]
 
 while(1):
 
@@ -129,7 +135,6 @@ if len(pts) == 4:
     cv2.line(im_draw, pts[2], pts[3], (255, 0, 0), 2)
     cv2.imshow("image", im_draw)
 
-
 # Do homography
 h, status = cv2.findHomography(np.array(pts), np.array(pts2))
 
@@ -147,13 +152,22 @@ frame1 = cv2.warpPerspective(frame, h, (field.shape[1], field.shape[0]))
 # cv2.imshow("Destination Image", field)
 cv2.imshow("Warped Source Image", frame1)
 
+
 # print(frame1.shape)
 # print(field.shape)
+
+# cv2.destroyAllWindows()
+# cv2.namedWindow("image")
+# cv2.namedWindow("field")
+# cv2.imshow('image', im_draw)
+# cv2.imshow('field', field1)
+
+cv2.setMouseCallback("image", set_player)
 
 # Draw players
 while(1):
 
-    cv2.setMouseCallback("image", set_player)
+
     cv2.imshow('image', im_draw)
     cv2.imshow('field', field1)
 
@@ -163,8 +177,7 @@ while(1):
 
     # if the 'r' key is pressed, reset the field points
     if k in [ord("r"), ord("к")]:
-        im_draw = field1.copy()
-
+        field1 = field.copy()
 
 cv2.waitKey(0)
 
