@@ -251,10 +251,10 @@ h = np.loadtxt('h_matrix.txt')
 # Warp source image to destination based on homography
 frame1 = cv2.warpPerspective(frame, h, (field.shape[1], field.shape[0]))
 
-cv2.imshow("warped", frame1)
-print("Press any key to continue")
-cv2.waitKey(0)
-cv2.destroyWindow("warped")
+# cv2.imshow("warped", frame1)
+# print("Press any key to continue")
+# cv2.waitKey(0)
+# cv2.destroyWindow("warped")
 
 fborders = ip.fborders
 
@@ -320,42 +320,47 @@ cv2.destroyWindow("roi")
 
 # -------- histogram begin -----------
 
-# crop = frame[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
-#
-# hist = cv2.calcHist([crop],[0],None,[256],[0,256])
-# # plt.plot(hist)
-# # plt.show()
-# hsvt = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2HSV)
-#
-# # cv2.imshow("hsvt", hsvt)
-# # cv2.waitKey(0)
-#
-# # normalize histogram and apply backprojection
-# cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
-# dst = cv2.calcBackProject([hsvt], [0, 1], hist, [0, 180 ,0, 256], 1)
-#
-# # Now convolute with circular disc
-# disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-# # cv2.filter2D(dst,-1,disc,dst)
-#
-# # ret,thresh = cv2.threshold(dst, 50, 255 ,0)
-# # thresh = cv2.merge((thresh,thresh,thresh))
-# # dst = cv2.bitwise_and(frame,thresh)
-#
-# cv2.imshow("dst", dst)
+crop = frame[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
+k_crop = 3
+big_crop = cv2.resize(crop, (k_crop * crop.shape[1], k_crop * crop.shape[0]), interpolation = cv2.INTER_CUBIC)
+
+cv2.imshow("big_crop", big_crop)
+cv2.waitKey(0)
+
+hist = cv2.calcHist([crop],[0],None,[256],[0,256])
+# plt.plot(hist)
+# plt.show()
+hsvt = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2HSV)
+
+# cv2.imshow("hsvt", hsvt)
 # cv2.waitKey(0)
-#
-#
-# # # ver. 2
-# # color = ('b','g','r')
-# # for channel,col in enumerate(color):
-# #     histr = cv2.calcHist([crop],[channel],None,[256],[0,256])
-# #     plt.plot(histr,color=col)
-# #     plt.xlim([0,256])
-# # plt.title('Histogram for color scale picture')
-# # plt.show()
-#
-# exit()
+
+# normalize histogram and apply backprojection
+cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
+dst = cv2.calcBackProject([hsvt], [0, 1], hist, [0, 180 ,0, 256], 1)
+
+# Now convolute with circular disc
+disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+# cv2.filter2D(dst,-1,disc,dst)
+
+# ret,thresh = cv2.threshold(dst, 50, 255 ,0)
+# thresh = cv2.merge((thresh,thresh,thresh))
+# dst = cv2.bitwise_and(frame,thresh)
+
+cv2.imshow("dst", dst)
+cv2.waitKey(0)
+
+
+# # ver. 2
+# color = ('b','g','r')
+# for channel,col in enumerate(color):
+#     histr = cv2.calcHist([crop],[channel],None,[256],[0,256])
+#     plt.plot(histr,color=col)
+#     plt.xlim([0,256])
+# plt.title('Histogram for color scale picture')
+# plt.show()
+
+exit()
 
 # ------- histogram end -----------
 if bbox:
@@ -453,7 +458,7 @@ while True:
         p1 = (int(bbox[0]), int(bbox[1]))
         p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
         cv2.rectangle(frame, p1, p2, (255 ,0 ,0), 2, 1)
-    else :
+    else:
         # Tracking failure
         cv2.putText(frame, "Tracking failure detected", (100 ,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75 ,(0 ,0 ,255) ,2)
 
@@ -487,3 +492,13 @@ cv2.destroyAllWindows()
 
 
 # ttps://www.youtube.com/watch?v=KOsgEsY8UWI
+
+# https://www.pyimagesearch.com/2016/02/15/determining-object-color-with-opencv/
+
+# https://docs.opencv.org/3.0-beta/modules/tracking/doc/tracking.html
+
+# https://github.com/dev-labs-bg/football-stats
+# https://github.com/AndresGalaviz/Football-Player-Tracking
+# https://github.com/dhingratul/Player-Tracking/blob/master/tracker_OTS.py
+
+# http://savvastjortjoglou.com/nba-play-by-play-movements.html
