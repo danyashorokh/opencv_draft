@@ -90,6 +90,18 @@ def h_points(h, x, y):
 
     return hx, hy
 
+def inside(r, q):
+    rx, ry, rw, rh = r
+    qx, qy, qw, qh = q
+    return rx > qx and ry > qy and rx + rw < qx + qw and ry + rh < qy + qh
+
+def draw_detections(img, rects, thickness = 1):
+    for x, y, w, h in rects:
+        # the HOG detector returns slightly larger rectangles than the real objects.
+        # so we slightly shrink the rectangles to get a nicer output.
+        pad_w, pad_h = int(0.15*w), int(0.05*h)
+        cv2.rectangle(img, (x+pad_w, y+pad_h), (x+w-pad_w, y+h-pad_h), (0, 255, 0), thickness)
+
 
 path_field = 'image/'
 path_video = 'video/'
@@ -304,7 +316,7 @@ frame_draw = cv2.bitwise_and(frame_draw, frame_draw, mask=mask)
 cv2.imshow('frame', frame_draw)
 
 print("Press any key to continue")
-cv2.waitKey(0)
+# cv2.waitKey(0)
 cv2.destroyWindow("frame")
 
 
@@ -313,54 +325,57 @@ print("Select any object")
 frame = cv2.bitwise_and(frame, frame, mask=mask)
 
 # Select a bounding box
-# bbox = (161, 141, 7, 13)
-bbox = cv2.selectROI('roi', frame, False)
-print(bbox)
-cv2.destroyWindow("roi")
+bbox = (161, 141, 7, 13)
+# bbox = cv2.selectROI('roi', frame, False)
+# print(bbox)
+# cv2.destroyWindow("roi")
 
 # -------- histogram begin -----------
 
-crop = frame[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
-k_crop = 3
-big_crop = cv2.resize(crop, (k_crop * crop.shape[1], k_crop * crop.shape[0]), interpolation = cv2.INTER_CUBIC)
-
-cv2.imshow("big_crop", big_crop)
-cv2.waitKey(0)
-
-hist = cv2.calcHist([crop],[0],None,[256],[0,256])
-# plt.plot(hist)
-# plt.show()
-hsvt = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2HSV)
-
-# cv2.imshow("hsvt", hsvt)
+# crop = frame[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
+# k_crop = 3
+# big_crop = cv2.resize(crop, (k_crop * crop.shape[1], k_crop * crop.shape[0]), interpolation = cv2.INTER_CUBIC)
+#
+# cv2.imshow("big_crop", big_crop)
 # cv2.waitKey(0)
-
-# normalize histogram and apply backprojection
-cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
-dst = cv2.calcBackProject([hsvt], [0, 1], hist, [0, 180 ,0, 256], 1)
-
-# Now convolute with circular disc
-disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+#
+# crop = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+#
+# hist = cv2.calcHist([crop],[0, 1], None, [180, 256], [0, 180, 0, 256])
+# # plt.plot(hist)
+# # plt.show()
+# hsvt = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2HSV)
+#
+# # cv2.imshow("hsvt", hsvt)
+# # cv2.waitKey(0)
+#
+# # normalize histogram and apply backprojection
+# cv2.normalize(hist, hist, 0, 255, cv2.NORM_MINMAX)
+#
+# dst = cv2.calcBackProject([hsvt], [0, 1], hist, [0, 180, 0, 256], 1)
+#
+# # Now convolute with circular disc
+# disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 # cv2.filter2D(dst,-1,disc,dst)
-
-# ret,thresh = cv2.threshold(dst, 50, 255 ,0)
+#
+# ret, thresh = cv2.threshold(dst, 50, 255, 0)
 # thresh = cv2.merge((thresh,thresh,thresh))
 # dst = cv2.bitwise_and(frame,thresh)
-
-cv2.imshow("dst", dst)
-cv2.waitKey(0)
-
-
-# # ver. 2
-# color = ('b','g','r')
-# for channel,col in enumerate(color):
-#     histr = cv2.calcHist([crop],[channel],None,[256],[0,256])
-#     plt.plot(histr,color=col)
-#     plt.xlim([0,256])
-# plt.title('Histogram for color scale picture')
-# plt.show()
-
-exit()
+#
+# cv2.imshow("dst", dst)
+# cv2.waitKey(0)
+#
+#
+# # # ver. 2
+# # color = ('b','g','r')
+# # for channel,col in enumerate(color):
+# #     histr = cv2.calcHist([crop],[channel],None,[256],[0,256])
+# #     plt.plot(histr,color=col)
+# #     plt.xlim([0,256])
+# # plt.title('Histogram for color scale picture')
+# # plt.show()
+#
+# exit()
 
 # ------- histogram end -----------
 if bbox:
@@ -377,6 +392,12 @@ counter = 0
 fgbg1 = cv2.createBackgroundSubtractorMOG2()
 fgbg2 = cv2.createBackgroundSubtractorKNN()
 
+hog = cv2.HOGDescriptor()
+hog.setSVMDetector( cv2.HOGDescriptor_getDefaultPeopleDetector() )
+
+w1 = 4
+sc1 = 1.5
+pad1 = 8
 
 while True:
     # Read a new frame
@@ -390,6 +411,7 @@ while True:
 
     frame2 = frame.copy()
 
+    # -------- fgbg ------------------
     frame2 = cv2.GaussianBlur(frame2, (3, 3), 0)
 
     fgmask = fgbg1.apply(frame2.copy())
@@ -425,6 +447,23 @@ while True:
     #         # if h1 >= w1:
     #         cv2.rectangle(frame, (x1, y1), (x1 + w1, y1 + h1), (0, 255, 0), 2)
 
+    # ------------   fgbg end --------
+
+    # ------------ hog ------------
+
+    found, w = hog.detectMultiScale(frame, winStride=(w1, w1), scale=sc1)
+    found_filtered = []
+    for ri, r in enumerate(found):
+        for qi, q in enumerate(found):
+            if ri != qi and inside(r, q):
+                break
+        else:
+            found_filtered.append(r)
+
+    draw_detections(frame, found)
+    draw_detections(frame, found_filtered, 3)
+    # ----------- hog end ---------
+
     # Update tracker
     ok, bbox = tracker.update(frame)
 
@@ -457,16 +496,19 @@ while True:
         # Tracking success
         p1 = (int(bbox[0]), int(bbox[1]))
         p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-        cv2.rectangle(frame, p1, p2, (255 ,0 ,0), 2, 1)
+        cv2.rectangle(frame, p1, p2, (0, 0, 255), 2, 1)
     else:
         # Tracking failure
-        cv2.putText(frame, "Tracking failure detected", (100 ,80), cv2.FONT_HERSHEY_SIMPLEX, 0.75 ,(0 ,0 ,255) ,2)
+        cv2.putText(frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75 ,(0 ,0 ,255) ,2)
 
     # Display tracker type on frame
-    cv2.putText(frame, tracker_type + " Tracker", (100 ,20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50) ,2);
+    cv2.putText(frame, tracker_type + " Tracker", (100, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50) ,2);
 
     # Display FPS on frame
-    cv2.putText(frame, "FPS : " + str(int(fps)), (100 ,50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50), 2);
+    cv2.putText(frame, "FPS : " + str(int(fps)), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50), 2);
+    cv2.putText(frame, "w1 : " + str((w1)), (400, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50), 2);
+    cv2.putText(frame, "sc1 : " + str((sc1)), (400, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50), 2);
+    cv2.putText(frame, "pad1 : " + str((pad1)), (400, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50 ,170 ,50), 2);
 
     # Display result
     # cv2.imshow("Tracking", frame)
@@ -483,6 +525,13 @@ while True:
     if k == 27: break
 
     counter += 1
+
+    if k == ord("q"): w1 += 4
+    if k == ord("a"): w1 -= 4
+    if k == ord("w"): sc1 += 0.01
+    if k == ord("s"): sc1 -= 0.01
+    if k == ord("e"): pad1 *= 2
+    if k == ord("d"): pad1 /= 2
 
 
 cv2.waitKey(0)
