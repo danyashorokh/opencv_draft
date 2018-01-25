@@ -307,11 +307,11 @@ else:
 cv2.setMouseCallback("frame", do_nothing)
 cv2.polylines(frame_draw, [np.array(fborders)], 1, (0,0,255))
 
-mask = np.zeros(frame.shape[:2], dtype="uint8")
+field_mask = np.zeros(frame.shape[:2], dtype="uint8")
 
-cv2.fillPoly(mask,[np.array(fborders)], 255, 1)
+cv2.fillPoly(field_mask,[np.array(fborders)], 255, 1)
 
-frame_draw = cv2.bitwise_and(frame_draw, frame_draw, mask=mask)
+frame_draw = cv2.bitwise_and(frame_draw, frame_draw, mask=field_mask)
 
 cv2.imshow('frame', frame_draw)
 
@@ -322,7 +322,7 @@ cv2.destroyWindow("frame")
 
 print("Select any object")
 
-frame = cv2.bitwise_and(frame, frame, mask=mask)
+frame = cv2.bitwise_and(frame, frame, mask=field_mask)
 
 # Select a bounding box
 bbox = (161, 141, 7, 13)
@@ -377,7 +377,17 @@ bbox = (161, 141, 7, 13)
 #
 # exit()
 
+crop = frame[int(bbox[1]):int(bbox[1]+bbox[3]), int(bbox[0]):int(bbox[0]+bbox[2])]
+hsv_roi = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+player_mask = cv2.inRange(hsv_roi, np.array((0., 60.,32.)), np.array((180.,255.,255.)))
+roi_hist = cv2.calcHist([hsv_roi],[0],player_mask,[180],[0,180])
+cv2.normalize(roi_hist,roi_hist,0,255,cv2.NORM_MINMAX)
+
+# Setup the termination criteria, either 10 iteration or move by at least 1 pt
+term_crit = ( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1 )
+track_window = bbox
 # ------- histogram end -----------
+
 if bbox:
     print("Object is chosen")
 
@@ -411,23 +421,39 @@ while True:
 
     frame2 = frame.copy()
 
+    # -------- meanshift -------------
+
+    # hsv_frame = cv2.cvtColor(frame.copy(), cv2.COLOR_BGR2HSV)
+    # mean_dst = cv2.calcBackProject([hsv_frame], [0], roi_hist, [0, 180], 1)
+    #
+    # cv2.imshow('mean_dst', mean_dst)
+    #
+    # # apply meanshift to get the new location
+    # ret, track_window = cv2.meanShift(mean_dst, track_window, term_crit)
+    #
+    # # Draw it on image
+    # xm, ym, wm, hm = track_window
+    # cv2.rectangle(frame, (xm, ym), (xm + wm, ym + hm), (0,255,255), 2, 1)
+
+    # -------- meanshift end ---------
+
     # -------- fgbg ------------------
-    frame2 = cv2.GaussianBlur(frame2, (3, 3), 0)
-
-    fgmask = fgbg1.apply(frame2.copy())
-    _, fgmask = cv2.threshold(fgmask, 127, 255, cv2.THRESH_BINARY)
-
-    fgmask = cv2.bitwise_and(fgmask, fgmask, mask=mask)
-
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    edged = cv2.Canny(fgmask, 30, 100)  # any gradient between 30 and 150 are considered edges
-    edged = cv2.dilate(edged, kernel, iterations=2)
-
-
-    # kernel = np.ones((5, 5), np.uint8)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
-    cv2.imshow("background", np.vstack([edged, fgmask]))
+    # frame2 = cv2.GaussianBlur(frame2, (3, 3), 0)
+    #
+    # fgmask = fgbg1.apply(frame2.copy())
+    # _, fgmask = cv2.threshold(fgmask, 127, 255, cv2.THRESH_BINARY)
+    #
+    # fgmask = cv2.bitwise_and(fgmask, fgmask, mask=field_mask)
+    #
+    # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    # edged = cv2.Canny(fgmask, 30, 100)  # any gradient between 30 and 150 are considered edges
+    # edged = cv2.dilate(edged, kernel, iterations=2)
+    #
+    #
+    # # kernel = np.ones((5, 5), np.uint8)
+    # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    # fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_CLOSE, kernel, iterations=2)
+    # cv2.imshow("background", np.vstack([edged, fgmask]))
 
     # _, cnts, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     #
@@ -451,17 +477,17 @@ while True:
 
     # ------------ hog ------------
 
-    found, w = hog.detectMultiScale(frame, winStride=(w1, w1), scale=sc1)
-    found_filtered = []
-    for ri, r in enumerate(found):
-        for qi, q in enumerate(found):
-            if ri != qi and inside(r, q):
-                break
-        else:
-            found_filtered.append(r)
-
-    draw_detections(frame, found)
-    draw_detections(frame, found_filtered, 3)
+    # found, w = hog.detectMultiScale(frame, winStride=(w1, w1), scale=sc1)
+    # found_filtered = []
+    # for ri, r in enumerate(found):
+    #     for qi, q in enumerate(found):
+    #         if ri != qi and inside(r, q):
+    #             break
+    #     else:
+    #         found_filtered.append(r)
+    #
+    # draw_detections(frame, found)
+    # draw_detections(frame, found_filtered, 3)
     # ----------- hog end ---------
 
     # Update tracker
