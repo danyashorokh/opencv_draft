@@ -412,6 +412,7 @@ pad1 = 8
 while True:
     # Read a new frame
     ok, frame = video.read()
+
     if not ok:
         break
 

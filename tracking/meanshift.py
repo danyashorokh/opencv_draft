@@ -40,8 +40,8 @@ while(1):
         k = cv2.waitKey(60) & 0xff
         if k == 27:
             break
-        else:
-            cv2.imwrite(str(k)+".jpg",img2)
+        else: pass
+            # cv2.imwrite(str(k)+".jpg",img2)
 
     else:
         break
