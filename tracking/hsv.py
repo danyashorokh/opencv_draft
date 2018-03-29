@@ -35,6 +35,9 @@ iHighS = 126
 iLowV = 82
 iHighV = 132
 
+lower_blue = np.array([110,50,50])
+upper_blue = np.array([130,255,255])
+
 cv2.namedWindow('Control')
 cv2.createTrackbar("LowH", "Control", iLowH, 255, nothing)
 cv2.createTrackbar("HighH", "Control", iHighH, 255, nothing)
@@ -42,6 +45,8 @@ cv2.createTrackbar("LowS", "Control", iLowS, 255, nothing)
 cv2.createTrackbar("HighS", "Control", iHighS, 255, nothing)
 cv2.createTrackbar("LowV", "Control", iLowV, 255, nothing)
 cv2.createTrackbar("HighV", "Control", iHighV, 255, nothing)
+
+cv2.createTrackbar("Color", "Control", 0, 1, nothing)
 
 cam = cv2.VideoCapture(0)
 
@@ -53,6 +58,16 @@ while True:
     hh = cv2.getTrackbarPos('HighH', 'Control')
     hs = cv2.getTrackbarPos('HighS', 'Control')
     hv = cv2.getTrackbarPos('HighV', 'Control')
+    c = cv2.getTrackbarPos('Color', 'Control')
+
+    if c == 1:
+        cv2.setTrackbarPos('HighH', 'Control', upper_blue[0])
+        cv2.setTrackbarPos('HighS', 'Control', upper_blue[1])
+        cv2.setTrackbarPos('HighV', 'Control', upper_blue[2])
+        cv2.setTrackbarPos('LowH', 'Control', lower_blue[0])
+        cv2.setTrackbarPos('LowS', 'Control', lower_blue[1])
+        cv2.setTrackbarPos('LowV', 'Control', lower_blue[2])
+
 
     lower = np.array([lh, ls, lv], dtype="uint8")
     higher = np.array([hh, hs, hv], dtype="uint8")
@@ -74,8 +89,11 @@ while True:
 
     cv2.imshow('hsv', img)
     cv2.imshow('mask', mask)
+    cv2.imshow('res', res)
 
     if cv2.waitKey(1) == 27:
         break  # esc to quit
 
 cv2.destroyAllWindows()
+
+
