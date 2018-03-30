@@ -28,27 +28,44 @@ img_w = int(img_w/img_k)
 img_h = int(img_h/img_k)
 img = cv2.resize(img, (img_w, img_h))
 
-iLowH = 155
-iHighH = 225
-iLowS = 47
-iHighS = 126
-iLowV = 82
-iHighV = 132
+# iLowH = 155
+# iHighH = 225
+# iLowS = 47
+# iHighS = 126
+# iLowV = 82
+# iHighV = 132
 
-lower_blue = np.array([110,50,50])
-upper_blue = np.array([130,255,255])
+iLowH = 0
+iHighH = 179
+iLowS = 0
+iHighS = 255
+iLowV = 0
+iHighV = 255
 
-cv2.namedWindow('Control')
-cv2.createTrackbar("LowH", "Control", iLowH, 255, nothing)
-cv2.createTrackbar("HighH", "Control", iHighH, 255, nothing)
+hsv_ranges = {
+    1: [[110, 50, 50], [130, 255, 255]],  # blue
+    2: [[0, 0, 0], [15, 255, 255]],  # red
+}
+
+lower_blue = np.array([110, 50, 50])
+upper_blue = np.array([130, 255, 255])
+
+cv2.namedWindow('Control', cv2.WINDOW_NORMAL)
+cv2.createTrackbar("LowH", "Control", iLowH, 179, nothing)
+cv2.createTrackbar("HighH", "Control", iHighH, 179, nothing)
 cv2.createTrackbar("LowS", "Control", iLowS, 255, nothing)
 cv2.createTrackbar("HighS", "Control", iHighS, 255, nothing)
 cv2.createTrackbar("LowV", "Control", iLowV, 255, nothing)
 cv2.createTrackbar("HighV", "Control", iHighV, 255, nothing)
 
-cv2.createTrackbar("Color", "Control", 0, 1, nothing)
+switch = '0 : None\n1 : Blue\n2 : Red'
+cv2.createTrackbar(switch, "Control", 0, 2, nothing)
+
+cv2.createTrackbar('Correct', "Control", 0, 1, nothing)
+cv2.setTrackbarPos('Correct', 'Control', 1)
 
 cam = cv2.VideoCapture(0)
+
 
 while True:
 
@@ -58,15 +75,26 @@ while True:
     hh = cv2.getTrackbarPos('HighH', 'Control')
     hs = cv2.getTrackbarPos('HighS', 'Control')
     hv = cv2.getTrackbarPos('HighV', 'Control')
-    c = cv2.getTrackbarPos('Color', 'Control')
+    c = cv2.getTrackbarPos(switch, 'Control')
+    correct = cv2.getTrackbarPos('Correct', 'Control')
 
-    if c == 1:
-        cv2.setTrackbarPos('HighH', 'Control', upper_blue[0])
-        cv2.setTrackbarPos('HighS', 'Control', upper_blue[1])
-        cv2.setTrackbarPos('HighV', 'Control', upper_blue[2])
-        cv2.setTrackbarPos('LowH', 'Control', lower_blue[0])
-        cv2.setTrackbarPos('LowS', 'Control', lower_blue[1])
-        cv2.setTrackbarPos('LowV', 'Control', lower_blue[2])
+    if c != 0 and correct != 1:
+        cv2.setTrackbarPos('HighH', 'Control', hsv_ranges[c][1][0])
+        cv2.setTrackbarPos('HighS', 'Control', hsv_ranges[c][1][1])
+        cv2.setTrackbarPos('HighV', 'Control', hsv_ranges[c][1][2])
+        cv2.setTrackbarPos('LowH', 'Control', hsv_ranges[c][0][0])
+        cv2.setTrackbarPos('LowS', 'Control', hsv_ranges[c][0][1])
+        cv2.setTrackbarPos('LowV', 'Control', hsv_ranges[c][0][2])
+        # cv2.setTrackbarPos('Correct', 'Control', 0)
+
+    if c == 0 and correct != 1:
+        cv2.setTrackbarPos('HighH', 'Control', iHighH)
+        cv2.setTrackbarPos('HighS', 'Control', iHighS)
+        cv2.setTrackbarPos('HighV', 'Control', iHighV)
+        cv2.setTrackbarPos('LowH', 'Control', iLowH)
+        cv2.setTrackbarPos('LowS', 'Control', iLowS)
+        cv2.setTrackbarPos('LowV', 'Control', iLowV)
+        # cv2.setTrackbarPos('Correct', 'Control', 0)
 
 
     lower = np.array([lh, ls, lv], dtype="uint8")
@@ -87,9 +115,11 @@ while True:
     #
     # cv2.imshow('my webcam', img)
 
-    cv2.imshow('hsv', img)
-    cv2.imshow('mask', mask)
-    cv2.imshow('res', res)
+    # cv2.imshow('img', img)
+    # cv2.imshow('mask', mask)
+    # cv2.imshow('res', res)
+
+    cv2.imshow('res', np.hstack([img, res]))
 
     if cv2.waitKey(1) == 27:
         break  # esc to quit
